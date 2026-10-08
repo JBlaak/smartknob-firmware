@@ -1,10 +1,38 @@
 #include "hass_apps.h"
 
+static void breathe_anim_cb(void *var, int32_t value)
+{
+    lv_obj_set_style_bg_opa((lv_obj_t *)var, value, 0);
+}
+
 HassApps::HassApps(SemaphoreHandle_t mutex) : Apps(mutex)
 {
-    lv_obj_t *label = lv_label_create(waiting_for_hass);
-    lv_label_set_text(label, "Waiting for Home Assistant");
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_bg_color(waiting_for_hass, SK_COLOR_BACKGROUND, 0);
+    lv_obj_clear_flag(waiting_for_hass, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *dot = sk_circle_create(waiting_for_hass, 14, SK_COLOR_TEXT);
+    lv_obj_align(dot, LV_ALIGN_CENTER, 0, -52);
+
+    lv_obj_t *title = sk_label_create(waiting_for_hass, &figtree_600_23, SK_COLOR_TEXT);
+    lv_label_set_text(title, "Knocking on\nthe door…");
+    lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, -4);
+
+    lv_obj_t *subtitle = sk_label_create(waiting_for_hass, &figtree_500_13, SK_COLOR_TEXT_SECONDARY);
+    lv_label_set_text(subtitle, "Waiting for your controller");
+    lv_obj_align(subtitle, LV_ALIGN_CENTER, 0, 42);
+
+    // The dot breathes while the knob waits.
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, dot);
+    lv_anim_set_exec_cb(&a, breathe_anim_cb);
+    lv_anim_set_values(&a, LV_OPA_20, LV_OPA_COVER);
+    lv_anim_set_time(&a, 1200);
+    lv_anim_set_playback_time(&a, 1200);
+    lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
+    lv_anim_start(&a);
 };
 void HassApps::sync(cJSON *json_apps)
 {
