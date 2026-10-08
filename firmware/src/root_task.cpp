@@ -283,6 +283,9 @@ void RootTask::run()
                 break;
 #if SK_MQTT
             case SK_RESET_ERROR:
+                // Clear the error first: it blocks the motor, and enabling the
+                // mode below hands the motor the active app's config again.
+                display_task_->getErrorHandlingFlow()->handleEvent(wifi_event); // if reset error or dismiss error is triggered elsewhere.
                 switch (configuration_->getOSConfiguration()->mode)
                 {
                 case ONBOARDING:
@@ -299,7 +302,6 @@ void RootTask::run()
                 }
                 wifi_task_->resetRetryCount();
                 mqtt_task_->handleEvent(wifi_event);
-                display_task_->getErrorHandlingFlow()->handleEvent(wifi_event); // if reset error or dismiss error is triggered elsewhere.
                 break;
             case SK_WIFI_STA_CONNECTED:
                 if (configuration_->getOSConfiguration()->mode == HASS)

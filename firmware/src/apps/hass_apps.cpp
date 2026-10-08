@@ -64,7 +64,13 @@ void HassApps::handleEvent(WiFiEvent event)
             if (app != nullptr)
             {
                 app->updateStateFromHASS(event.body.mqtt_state_update);
-                motor_notifier->requestUpdate(active_app->getMotorConfig());
+                // Only the app on screen drives the motor. Sending another
+                // app's update would hand the motor the active app's config
+                // as it was when queued, snapping the dial back mid-turn.
+                if (app == active_app)
+                {
+                    motor_notifier->requestUpdate(active_app->getMotorConfig());
+                }
             }
             else
             {
