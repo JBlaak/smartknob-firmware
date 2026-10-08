@@ -112,6 +112,23 @@ void RootTask::run()
     auto callbackSetProtocol = [this]()
     { free_rtos_adapter_->setProtocol(serial_protocol_protobuf_); };
     serial_protocol_plaintext_->registerKeyHandler('q', callbackSetProtocol);
+#if SK_UI_DEBUG && SK_DISPLAY
+    // Drive the UI from the serial console, for checking it without a hand on the knob.
+    serial_protocol_plaintext_->registerKeyHandler('S', [this]()
+                                                   { display_task_->requestSnapshot(); });
+    serial_protocol_plaintext_->registerKeyHandler(',', [this]()
+                                                   { debugTurn(-1); });
+    serial_protocol_plaintext_->registerKeyHandler('.', [this]()
+                                                   { debugTurn(1); });
+    serial_protocol_plaintext_->registerKeyHandler('<', [this]()
+                                                   { debugTurn(-10); });
+    serial_protocol_plaintext_->registerKeyHandler('>', [this]()
+                                                   { debugTurn(10); });
+    serial_protocol_plaintext_->registerKeyHandler('P', [this]()
+                                                   { dispatchNavigation(NavigationEvent::SHORT); });
+    serial_protocol_plaintext_->registerKeyHandler('L', [this]()
+                                                   { dispatchNavigation(NavigationEvent::LONG); });
+#endif
     serial_protocol_plaintext_->registerKeyHandler(0, callbackSetProtocol); // Switches to protobuf protocol on protobuf message from configurator
 #endif
 
@@ -283,6 +300,9 @@ void RootTask::run()
                 break;
 #if SK_MQTT
             case SK_RESET_ERROR:
+                // Clear the error first: it blocks the motor, and enabling the
+                // mode below hands the motor the active app's config again.
+                display_task_->getErrorHandlingFlow()->handleEvent(wifi_event); // if reset error or dismiss error is triggered elsewhere.
                 switch (configuration_->getOSConfiguration()->mode)
                 {
                 case ONBOARDING:
@@ -299,7 +319,6 @@ void RootTask::run()
                 }
                 wifi_task_->resetRetryCount();
                 mqtt_task_->handleEvent(wifi_event);
-                display_task_->getErrorHandlingFlow()->handleEvent(wifi_event); // if reset error or dismiss error is triggered elsewhere.
                 break;
             case SK_WIFI_STA_CONNECTED:
                 if (configuration_->getOSConfiguration()->mode == HASS)
@@ -612,6 +631,63 @@ void RootTask::run()
     }
 }
 
+#if SK_UI_DEBUG
+// Moves the knob's position as if it was turned, by handing the motor the
+// config it has with a new position. The rotor itself doesn't move.
+void RootTask::debugTurn(int32_t detents)
+{
+    if (latest_config_.id[0] == '\0')
+    {
+        LOGW("Debug turn: no app has set up the motor yet");
+        return;
+    }
+    PB_SmartKnobConfig config = latest_config_;
+    bool state_is_current = strcmp(latest_state_.config.id, latest_config_.id) == 0;
+    config.position = (state_is_current ? latest_state_.current_position : latest_config_.position) + detents;
+    if (config.min_position <= config.max_position)
+    {
+        config.position = constrain(config.position, config.min_position, config.max_position);
+    }
+    config.position_nonce = latest_config_.position_nonce + 1;
+    LOGI("Debug turn %d to %d (%s)", detents, config.position, config.id);
+    applyConfig(config, false);
+}
+#endif
+
+void RootTask::dispatchNavigation(NavigationEvent event)
+{
+#if SK_DISPLAY
+    switch (display_task_->getErrorHandlingFlow()->getErrorType())
+    {
+    case NO_ERROR:
+        switch (configuration_->getOSConfiguration()->mode)
+        {
+        case ONBOARDING:
+            display_task_->getOnboardingFlow()->handleNavigationEvent(event);
+            break;
+        case DEMO:
+            display_task_->getDemoApps()->handleNavigationEvent(event);
+            break;
+        case HASS:
+            display_task_->getHassApps()->handleNavigationEvent(event);
+            break;
+        case SPOTIFY:
+            display_task_->getSpotifyStandalone()->handleNavigationEvent(event);
+            break;
+        default:
+            break;
+        }
+        break;
+    case MQTT_ERROR:
+    case WIFI_ERROR:
+        display_task_->getErrorHandlingFlow()->handleNavigationEvent(event);
+        break;
+    default:
+        break;
+    }
+#endif
+}
+
 void RootTask::updateHardware(AppState *app_state)
 {
     static bool pressed;
@@ -652,36 +728,7 @@ void RootTask::updateHardware(AppState *app_state)
                 last_strain_pressed_played_ = VIRTUAL_BUTTON_LONG_PRESSED;
                 NavigationEvent event = NavigationEvent::LONG;
 
-                //! GET ACTIVE FLOW? SO WE DONT HAVE DIFFERENT
-                // display_task_->getActiveFlow()->handleNavigationEvent(event);
-                switch (display_task_->getErrorHandlingFlow()->getErrorType())
-                {
-                case NO_ERROR:
-                    switch (configuration_->getOSConfiguration()->mode)
-                    {
-                    case ONBOARDING:
-                        display_task_->getOnboardingFlow()->handleNavigationEvent(event);
-                        break;
-                    case DEMO:
-                        display_task_->getDemoApps()->handleNavigationEvent(event);
-                        break;
-                    case HASS:
-                        display_task_->getHassApps()->handleNavigationEvent(event);
-                        break;
-                    case SPOTIFY:
-                        display_task_->getSpotifyStandalone()->handleNavigationEvent(event);
-                        break;
-                    default:
-                        break;
-                    }
-                    break;
-                case MQTT_ERROR:
-                case WIFI_ERROR:
-                    display_task_->getErrorHandlingFlow()->handleNavigationEvent(event);
-                    break;
-                default:
-                    break;
-                }
+                dispatchNavigation(event);
             }
             break;
         case VIRTUAL_BUTTON_SHORT_RELEASED:
@@ -692,36 +739,7 @@ void RootTask::updateHardware(AppState *app_state)
                 motor_task_.playHaptic(false, false);
                 last_strain_pressed_played_ = VIRTUAL_BUTTON_SHORT_RELEASED;
                 NavigationEvent event = NavigationEvent::SHORT;
-                switch (display_task_->getErrorHandlingFlow()->getErrorType())
-                {
-                case NO_ERROR:
-                    switch (configuration_->getOSConfiguration()->mode)
-                    {
-                    case ONBOARDING:
-                        LOGE("Handling short press released for onboarding");
-                        display_task_->getOnboardingFlow()->handleNavigationEvent(event);
-                        break;
-                    case DEMO:
-                        LOGE("Handling short press released for demo");
-                        display_task_->getDemoApps()->handleNavigationEvent(event);
-                        break;
-                    case HASS:
-                        display_task_->getHassApps()->handleNavigationEvent(event);
-                        break;
-                    case SPOTIFY:
-                        display_task_->getSpotifyStandalone()->handleNavigationEvent(event);
-                        break;
-                    default:
-                        break;
-                    }
-                    break;
-                case MQTT_ERROR:
-                case WIFI_ERROR:
-                    display_task_->getErrorHandlingFlow()->handleNavigationEvent(event);
-                    break;
-                default:
-                    break;
-                }
+                dispatchNavigation(event);
             }
             break;
         case VIRTUAL_BUTTON_LONG_RELEASED:

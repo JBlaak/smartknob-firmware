@@ -192,35 +192,28 @@ void Apps::handleNavigationEvent(NavigationEvent event)
 {
     int8_t next_app = DONT_NAVIGATE;
 
+    // Ask once: an app may act on being asked.
+    int8_t target = DONT_NAVIGATE;
     switch (event)
     {
     case NavigationEvent::SHORT:
-        switch (active_app->navigationNext())
-        {
-        case DONT_NAVIGATE:
-            return;
-            break;
-        case DONT_NAVIGATE_UPDATE_MOTOR_CONFIG:
-            break;
-        default:
-            next_app = active_app->navigationNext();
-            break;
-        }
+        target = active_app->navigationNext();
         break;
     case NavigationEvent::LONG:
-        switch (active_app->navigationBack())
-        {
-        case DONT_NAVIGATE:
-            return;
-            break;
-        case DONT_NAVIGATE_UPDATE_MOTOR_CONFIG:
-            break;
-        default:
-            next_app = active_app->navigationBack();
-            break;
-        }
+        target = active_app->navigationBack();
         break;
     default:
+        break;
+    }
+
+    switch (target)
+    {
+    case DONT_NAVIGATE:
+        return;
+    case DONT_NAVIGATE_UPDATE_MOTOR_CONFIG:
+        break;
+    default:
+        next_app = target;
         break;
     }
 

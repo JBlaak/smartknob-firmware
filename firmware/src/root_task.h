@@ -48,6 +48,11 @@ protected:
     void run();
 
 private:
+    void dispatchNavigation(NavigationEvent event);
+#if SK_UI_DEBUG
+    void debugTurn(int32_t detents);
+#endif
+
     MotorTask &motor_task_;
     DisplayTask *display_task_;
     WifiTask *wifi_task_;
