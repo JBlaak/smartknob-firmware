@@ -30,6 +30,8 @@ BlindsApp::BlindsApp(SemaphoreHandle_t mutex, char *app_id_, char *friendly_name
 
     big_icon = x80_blind;
     small_icon = x40_blind;
+    tint = SK_TINT_BLINDS;
+    glyph = &glyph_blinds_22;
 
     initScreen();
 }

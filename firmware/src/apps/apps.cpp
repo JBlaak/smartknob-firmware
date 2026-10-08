@@ -38,17 +38,27 @@ EntityStateUpdate Apps::update(AppState state)
 
 void Apps::render()
 {
-    active_app->render();
+    active_app->show(SCREEN_TRANSITION_NONE);
 };
 
 void Apps::setActive(int8_t id)
 {
     SemaphoreGuard lock(app_mutex_);
+    ScreenTransition transition = SCREEN_TRANSITION_NONE;
+    if (active_id == MENU && id != MENU)
+    {
+        transition = SCREEN_TRANSITION_OPEN;
+    }
+    else if (active_id != MENU && id == MENU)
+    {
+        transition = SCREEN_TRANSITION_BACK;
+    }
+
     if (id == MENU)
     {
         active_app = menu;
         active_id = MENU;
-        render();
+        active_app->show(transition);
         return;
     }
     LOGV(LOG_LEVEL_DEBUG, "Set active %d", id);
@@ -61,7 +71,7 @@ void Apps::setActive(int8_t id)
     else
     {
         active_app = apps[active_id];
-        render();
+        active_app->show(transition);
     }
 }
 
@@ -139,22 +149,13 @@ void Apps::updateMenu()
         menu = std::make_shared<MenuApp>(screen_mutex_);
 
         std::map<uint8_t, std::shared_ptr<App>>::iterator it;
-
-        uint16_t position = 0;
-
         for (it = apps.begin(); it != apps.end(); it++)
         {
-            menu->add_page(
-                position,
-                (int8_t)it->first,
-                it->second->friendly_name,
-                it->second->big_icon,
-                it->second->small_icon);
-
-            position++;
+            menu->addItem((int8_t)it->first, it->second);
         }
     }
 
+    active_id = MENU;
     setActive(MENU);
 }
 
@@ -192,7 +193,7 @@ void Apps::handleNavigationEvent(NavigationEvent event)
 {
     int8_t next_app = DONT_NAVIGATE;
 
-    // Ask once: an app may act on being asked.
+    // Ask once: an app may act on being asked (the home screen starts opening).
     int8_t target = DONT_NAVIGATE;
     switch (event)
     {

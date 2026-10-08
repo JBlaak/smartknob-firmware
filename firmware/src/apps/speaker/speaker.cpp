@@ -29,6 +29,8 @@ SpeakerApp::SpeakerApp(SemaphoreHandle_t mutex, char *app_id_, char *friendly_na
 
     big_icon = x80_speaker;
     small_icon = x40_speaker;
+    tint = SK_TINT_SPEAKER;
+    glyph = &glyph_speaker_22;
 
     initScreen();
 }

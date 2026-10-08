@@ -50,6 +50,8 @@ SpotifyApp::SpotifyApp(SemaphoreHandle_t mutex, char *app_id_, char *friendly_na
 
     big_icon = x80_spotify;
     small_icon = x40_spotify;
+    tint = SK_TINT_MUSIC;
+    glyph = &glyph_music_22;
 
     initScreen();
     initQrScreen();

@@ -51,7 +51,7 @@ protected:
     SemaphoreHandle_t screen_mutex_;
     SemaphoreHandle_t app_mutex_;
     std::map<uint8_t, std::shared_ptr<App>> apps;
-    std::shared_ptr<Menu> menu = nullptr;
+    std::shared_ptr<MenuApp> menu = nullptr;
 
     int8_t active_id = 0;
 

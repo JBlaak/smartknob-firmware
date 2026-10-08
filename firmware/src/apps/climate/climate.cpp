@@ -35,6 +35,8 @@ ClimateApp::ClimateApp(SemaphoreHandle_t mutex, char *app_id_, char *friendly_na
 
     big_icon = x80_thermostat;
     small_icon = x40_thermostat;
+    tint = SK_TINT_CLIMATE;
+    glyph = &glyph_climate_22;
 
     initScreen();
     updateTemperatureArc();

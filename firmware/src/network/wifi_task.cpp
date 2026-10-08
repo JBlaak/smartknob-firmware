@@ -501,6 +501,13 @@ void WifiTask::run()
             last_wifi_status = last_run_ms_;
         }
 
+        if (!time_sync_started_ && WiFi.status() == WL_CONNECTED)
+        {
+            // For the clock on the home screen. SNTP keeps it in sync from here.
+            configTzTime(SK_TIMEZONE, "pool.ntp.org", "time.google.com");
+            time_sync_started_ = true;
+        }
+
         if (is_config_set && last_run_ms_ - last_wifi_status_new > 3000 && WiFi.status() != WL_CONNECTED && retry_count < 3)
         {
             LOGV(LOG_LEVEL_DEBUG, "WiFi status: %d", WiFi.status());

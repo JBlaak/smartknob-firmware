@@ -21,6 +21,8 @@ LightDimmerApp::LightDimmerApp(SemaphoreHandle_t mutex, AppData app_data) : App(
 
     big_icon = x80_light_outline;
     small_icon = x40_light_outline;
+    tint = SK_TINT_LIGHTS;
+    glyph = &glyph_lights_22;
 
     page_mgr_ = new LightDimmerPageManager(screen, mutex, app_data);
 }

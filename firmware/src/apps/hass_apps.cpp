@@ -71,6 +71,10 @@ void HassApps::handleEvent(WiFiEvent event)
                 {
                     motor_notifier->requestUpdate(active_app->getMotorConfig());
                 }
+                if (menu != nullptr)
+                {
+                    menu->refreshStatus();
+                }
             }
             else
             {

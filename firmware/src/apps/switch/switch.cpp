@@ -33,6 +33,8 @@ SwitchApp::SwitchApp(SemaphoreHandle_t mutex, char *app_id_, char *friendly_name
         big_icon = x80_lightbulb_outline;
         big_icon_active = x80_lightbulb_filled;
         small_icon = x40_lightbulb_outline;
+        tint = SK_TINT_LIGHTS;
+        glyph = &glyph_lights_22;
     }
     else
     {
@@ -43,6 +45,8 @@ SwitchApp::SwitchApp(SemaphoreHandle_t mutex, char *app_id_, char *friendly_name
         big_icon = x80_toggle_switch_off;
         big_icon_active = x80_toggle_switch_on;
         small_icon = x40_toggle_switch_off;
+        tint = SK_TINT_SWITCH;
+        glyph = &glyph_switch_22;
     }
 
     initScreen();
