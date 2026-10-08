@@ -2,6 +2,7 @@
 #pragma once
 #include "lvgl.h"
 
+LV_IMG_DECLARE(glow_240);
 LV_IMG_DECLARE(glyph_app_22);
 LV_IMG_DECLARE(glyph_app_24);
 LV_IMG_DECLARE(glyph_blinds_22);
