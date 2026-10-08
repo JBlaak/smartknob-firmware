@@ -80,8 +80,14 @@ void SkRimArc::setValue(int16_t value)
 {
     value = LV_CLAMP(0, value, 100);
     lv_arc_set_value(arc_, value);
-    // A zero-length arc with rounded ends still draws a dot.
-    lv_obj_set_style_arc_opa(arc_, value > 0 ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_INDICATOR);
+    // A zero-length arc with rounded ends still draws a dot. Only touch the
+    // style when that changes: setting it redraws the whole arc.
+    bool visible = value > 0;
+    if (visible != indicator_visible_)
+    {
+        indicator_visible_ = visible;
+        lv_obj_set_style_arc_opa(arc_, visible ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_INDICATOR);
+    }
 
     int16_t angle = 135 + 270 * value / 100;
     lv_coord_t x = LV_HOR_RES / 2 + (RIM_RADIUS * lv_trigo_cos(angle) >> LV_TRIGO_SHIFT);

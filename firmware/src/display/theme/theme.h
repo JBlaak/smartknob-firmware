@@ -68,4 +68,5 @@ public:
 private:
     lv_obj_t *arc_;
     lv_obj_t *thumb_;
+    bool indicator_visible_ = true;
 };
