@@ -119,6 +119,30 @@ result to `config.pb`.
 Opening the port doesn't reset the knob. Any esptool command resets it when it
 is done, so the quickest reboot from the Mac is `$ESPTOOL --port $PORT read_mac`.
 
+## Checking the UI without touching the knob
+
+Builds with `SK_UI_DEBUG` (the `seedlabs_devkit` environment) listen for a few
+more keys on the serial console:
+
+| Key | Does |
+|---|---|
+| `S` | logs a screenshot of the display, as `SNAP` lines of RGB565 hex |
+| `.` `,` | turns the knob one detent right or left |
+| `>` `<` | turns it ten detents |
+| `P` | short press |
+| `L` | long press (back) |
+
+Turning hands the motor its config with a new position, so the rotor doesn't
+move. The log also gets a `PERF` line every two seconds while the screen
+changes: frames drawn, and what one costs to render and send.
+
+`tools/knob_ui.py` sends the keys and turns the `SNAP` lines into a PNG:
+
+```sh
+pip install pyserial pillow
+tools/knob_ui.py --port $PORT keys ".." wait 1 snap home.png keys P log 3
+```
+
 ## Pointing the knob at another MQTT broker
 
 Without going through onboarding again: the knob's web server takes new MQTT

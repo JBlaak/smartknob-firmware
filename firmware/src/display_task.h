@@ -48,8 +48,18 @@ public:
 
     void enableErrorHandlingFlow();
 
+    // Logs the screen as it is now, one "SNAP" line per half row of RGB565 hex.
+    void requestSnapshot();
+
 protected:
     void run();
+
+private:
+    void dumpSnapshot();
+    void logPerf();
+
+    volatile bool snapshot_requested_ = false;
+    unsigned long perf_logged_at_ = 0;
 
 private:
     OnboardingFlow *onboarding_flow = nullptr;
