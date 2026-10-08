@@ -47,6 +47,8 @@ StopwatchApp::StopwatchApp(SemaphoreHandle_t mutex, char *entitiy_id) : App(mute
 
     big_icon = x80_timer;
     small_icon = x40_timer;
+    tint = SK_TINT_STOPWATCH;
+    glyph = &glyph_stopwatch_22;
 
     initScreen();
 }

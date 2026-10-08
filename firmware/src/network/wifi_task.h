@@ -10,6 +10,11 @@
 #include <vector>
 #include <Preferences.h>
 
+// POSIX TZ for the home screen's clock; Europe/Amsterdam by default.
+#ifndef SK_TIMEZONE
+#define SK_TIMEZONE "CET-1CEST,M3.5.0,M10.5.0/3"
+#endif
+
 #include "../proto/proto_gen/smartknob.pb.h"
 #include "../task.h"
 #include "../app_config.h"
@@ -59,6 +64,7 @@ private:
     bool retry_mqtt;
 
     uint8_t retry_count = 0;
+    bool time_sync_started_ = false;
 
     std::vector<QueueHandle_t> state_listeners_;
 

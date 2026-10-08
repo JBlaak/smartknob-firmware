@@ -11,6 +11,7 @@
 #include "../notify/motor_notifier/motor_notifier.h"
 #include "navigation/navigation.h"
 #include "../util.h"
+#include "../display/theme/theme.h"
 
 const char APP_SLUG_CLIMATE[48] = "climate";
 const char APP_SLUG_BLINDS[48] = "blinds";
@@ -22,6 +23,16 @@ const char APP_SLUG_SWITCH[48] = "switch";
 const char APP_SLUG_STOPWATCH[48] = "stopwatch";
 const char APP_SLUG_SPOTIFY[48] = "spotify";
 const char APP_SLUG_SPEAKER[48] = "speaker";
+
+// How an app's screen comes on: straight away, after the home screen has
+// grown its icon to fill the screen (opening), or fading in over an app
+// (going back home).
+enum ScreenTransition
+{
+    SCREEN_TRANSITION_NONE,
+    SCREEN_TRANSITION_OPEN,
+    SCREEN_TRANSITION_BACK,
+};
 
 enum SharedAppIds : int8_t
 {
@@ -37,7 +48,14 @@ public:
     App(SemaphoreHandle_t mutex);
 
     App(SemaphoreHandle_t mutex, int8_t next, int8_t back);
+    virtual ~App() {}
     void render();
+
+    // Puts this app's screen on the display.
+    virtual void show(ScreenTransition transition);
+
+    // One short line for the home screen, like "64%" or "Heating to 21°".
+    virtual std::string statusText() { return ""; }
 
     virtual EntityStateUpdate updateStateFromKnob(PB_SmartKnobState state) { return EntityStateUpdate(); };
     virtual void updateStateFromHASS(MQTTStateUpdate mqtt_state_update) {};
@@ -68,6 +86,10 @@ public:
 
     lv_img_dsc_t small_icon;
     lv_img_dsc_t big_icon;
+
+    // The app's colour and its 22 px icon on the home screen.
+    lv_color_t tint = SK_TINT_SETTINGS;
+    const lv_img_dsc_t *glyph = &glyph_app_22;
     char friendly_name[256] = "";
     char app_id[256] = "";
     char entity_id[256] = "";

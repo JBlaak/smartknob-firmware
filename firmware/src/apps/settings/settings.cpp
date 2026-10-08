@@ -29,6 +29,8 @@ SettingsApp::SettingsApp(SemaphoreHandle_t mutex) : App(mutex)
 
     big_icon = x80_settings;
     small_icon = x40_settings;
+    tint = SK_TINT_SETTINGS;
+    glyph = &glyph_settings_22;
 }
 
 SettingsPages getSettingsPageEnum(uint8_t screen)

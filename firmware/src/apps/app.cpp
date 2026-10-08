@@ -16,8 +16,26 @@ App::App(SemaphoreHandle_t mutex, int8_t next, int8_t back) : mutex_(mutex), nex
 
 void App::render()
 {
+    show(SCREEN_TRANSITION_NONE);
+}
+
+void App::show(ScreenTransition transition)
+{
     SemaphoreGuard lock(mutex_);
-    lv_scr_load(screen);
+    switch (transition)
+    {
+    case SCREEN_TRANSITION_OPEN:
+        // Waits for the home screen to cover itself in this app's tint, then
+        // fades in over it.
+        lv_scr_load_anim(screen, LV_SCR_LOAD_ANIM_FADE_IN, SK_ANIM_FADE_MS, SK_ANIM_OPEN_MS, false);
+        break;
+    case SCREEN_TRANSITION_BACK:
+        lv_scr_load_anim(screen, LV_SCR_LOAD_ANIM_FADE_IN, SK_ANIM_FADE_MS, 0, false);
+        break;
+    default:
+        lv_scr_load(screen);
+        break;
+    }
 }
 
 void App::setMotorNotifier(MotorNotifier *motor_notifier)
