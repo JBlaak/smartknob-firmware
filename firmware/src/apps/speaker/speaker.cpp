@@ -1,5 +1,12 @@
 #include "speaker.h"
 
+static const lv_coord_t BAR_HEIGHT = 12;
+
+static void bar_anim_cb(void *var, int32_t value)
+{
+    lv_obj_set_height((lv_obj_t *)var, value);
+}
+
 SpeakerApp::SpeakerApp(SemaphoreHandle_t mutex, char *app_id_, char *friendly_name_, char *entity_id_) : App(mutex)
 {
     sprintf(app_id, "%s", app_id_);
@@ -38,59 +45,126 @@ SpeakerApp::SpeakerApp(SemaphoreHandle_t mutex, char *app_id_, char *friendly_na
 void SpeakerApp::initScreen()
 {
     SemaphoreGuard lock(mutex_);
+    lv_obj_set_style_bg_color(screen, SK_COLOR_BACKGROUND, 0);
+    lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
 
-    arc_ = lv_arc_create(screen);
-    lv_obj_set_size(arc_, 220, 220);
-    lv_arc_set_rotation(arc_, 150);
-    lv_arc_set_bg_angles(arc_, 0, 240);
-    lv_arc_set_range(arc_, 0, 100);
-    lv_arc_set_value(arc_, volume_);
-    lv_obj_remove_style(arc_, NULL, LV_PART_KNOB);
-    lv_obj_clear_flag(arc_, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_style_arc_width(arc_, 16, LV_PART_MAIN);
-    lv_obj_set_style_arc_width(arc_, 16, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_color(arc_, dark_arc_bg, LV_PART_MAIN);
-    lv_obj_set_style_arc_color(arc_, LV_COLOR_MAKE(0xF8, 0xCA, 0x05), LV_PART_INDICATOR);
-    lv_obj_center(arc_);
+    arc_ = new SkRimArc(screen, SK_TINT_SPEAKER);
 
-    lv_obj_t *name_label = lv_label_create(screen);
-    lv_label_set_text(name_label, friendly_name);
-    lv_obj_align(name_label, LV_ALIGN_CENTER, 0, -62);
+    lv_obj_t *art = sk_circle_create(screen, 56, LV_COLOR_MAKE(0x22, 0x1E, 0x3A));
+    lv_obj_align(art, LV_ALIGN_CENTER, 0, -52);
+    lv_obj_t *note = sk_glyph_create(art, &glyph_music_24, SK_TINT_SPEAKER);
+    lv_obj_center(note);
 
-    volume_label_ = lv_label_create(screen);
-    lv_obj_set_style_text_font(volume_label_, &roboto_light_mono_24pt, 0);
-    lv_obj_align(volume_label_, LV_ALIGN_CENTER, 0, -26);
-
-    playing_label_ = lv_label_create(screen);
-    lv_obj_set_style_text_color(playing_label_, LV_COLOR_MAKE(0x99, 0x99, 0x99), 0);
-    lv_obj_align(playing_label_, LV_ALIGN_CENTER, 0, 8);
-
-    track_label_ = lv_label_create(screen);
-    lv_label_set_long_mode(track_label_, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    track_label_ = sk_label_create(screen, &figtree_600_17, SK_COLOR_TEXT);
     lv_obj_set_width(track_label_, 150);
     lv_obj_set_style_text_align(track_label_, LV_TEXT_ALIGN_CENTER, 0);
-    lv_label_set_text(track_label_, "");
-    lv_obj_align(track_label_, LV_ALIGN_CENTER, 0, 38);
+    lv_label_set_long_mode(track_label_, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_label_set_text(track_label_, friendly_name);
+    lv_obj_align(track_label_, LV_ALIGN_CENTER, 0, -4);
 
-    artist_label_ = lv_label_create(screen);
-    lv_label_set_long_mode(artist_label_, LV_LABEL_LONG_DOT);
-    lv_obj_set_width(artist_label_, 130);
+    artist_label_ = sk_label_create(screen, &figtree_500_13, SK_COLOR_TEXT_SECONDARY);
+    lv_obj_set_width(artist_label_, 140);
     lv_obj_set_style_text_align(artist_label_, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_color(artist_label_, LV_COLOR_MAKE(0x99, 0x99, 0x99), 0);
-    lv_label_set_text(artist_label_, "");
-    lv_obj_align(artist_label_, LV_ALIGN_CENTER, 0, 62);
+    lv_label_set_long_mode(artist_label_, LV_LABEL_LONG_DOT);
+    lv_obj_align(artist_label_, LV_ALIGN_CENTER, 0, 18);
+
+    // The status row: moving bars or a pause sign, then the volume.
+    lv_obj_t *row = lv_obj_create(screen);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, LV_SIZE_CONTENT, 16);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(row, 8, 0);
+    lv_obj_align(row, LV_ALIGN_CENTER, 0, 44);
+
+    bars_ = lv_obj_create(row);
+    lv_obj_remove_style_all(bars_);
+    lv_obj_set_size(bars_, 13, BAR_HEIGHT);
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        bar_[i] = lv_obj_create(bars_);
+        lv_obj_remove_style_all(bar_[i]);
+        lv_obj_set_size(bar_[i], 3, BAR_HEIGHT);
+        lv_obj_set_style_radius(bar_[i], 1, 0);
+        lv_obj_set_style_bg_opa(bar_[i], LV_OPA_COVER, 0);
+        lv_obj_set_style_bg_color(bar_[i], SK_TINT_SPEAKER, 0);
+        lv_obj_align(bar_[i], LV_ALIGN_BOTTOM_LEFT, i * 5, 0);
+    }
+
+    pause_ = lv_obj_create(row);
+    lv_obj_remove_style_all(pause_);
+    lv_obj_set_size(pause_, 10, 10);
+    for (uint8_t i = 0; i < 2; i++)
+    {
+        lv_obj_t *stroke = lv_obj_create(pause_);
+        lv_obj_remove_style_all(stroke);
+        lv_obj_set_size(stroke, 3, 10);
+        lv_obj_set_style_radius(stroke, 1, 0);
+        lv_obj_set_style_bg_opa(stroke, LV_OPA_COVER, 0);
+        lv_obj_set_style_bg_color(stroke, SK_COLOR_TEXT_SECONDARY, 0);
+        lv_obj_set_pos(stroke, i * 6, 0);
+    }
+
+    volume_label_ = sk_label_create(row, &figtree_600_17, SK_COLOR_TEXT);
 
     render();
 }
 
 // Callers hold mutex_.
+void SpeakerApp::setPlayingAnimation(bool playing)
+{
+    if (playing == animating_)
+    {
+        return;
+    }
+    animating_ = playing;
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        lv_anim_del(bar_[i], bar_anim_cb);
+        if (!playing)
+        {
+            lv_obj_set_height(bar_[i], BAR_HEIGHT);
+            continue;
+        }
+        lv_anim_t a;
+        lv_anim_init(&a);
+        lv_anim_set_var(&a, bar_[i]);
+        lv_anim_set_exec_cb(&a, bar_anim_cb);
+        lv_anim_set_values(&a, 3, BAR_HEIGHT);
+        lv_anim_set_time(&a, 340 + i * 90);
+        lv_anim_set_playback_time(&a, 340 + i * 90);
+        lv_anim_set_delay(&a, i * 140);
+        lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+        lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
+        lv_anim_start(&a);
+    }
+}
+
+// Callers hold mutex_.
 void SpeakerApp::render()
 {
-    lv_arc_set_value(arc_, volume_);
+    arc_->setValue(volume_);
     lv_label_set_text_fmt(volume_label_, "%d%%", volume_);
-    lv_obj_align(volume_label_, LV_ALIGN_CENTER, 0, -26);
-    lv_label_set_text(playing_label_, playing_ ? "PLAYING" : "PAUSED");
-    lv_obj_align(playing_label_, LV_ALIGN_CENTER, 0, 8);
+    if (playing_)
+    {
+        lv_obj_clear_flag(bars_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(pause_, LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+        lv_obj_add_flag(bars_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(pause_, LV_OBJ_FLAG_HIDDEN);
+    }
+    setPlayingAnimation(playing_);
+}
+
+std::string SpeakerApp::statusText()
+{
+    if (!playing_)
+    {
+        return "Paused";
+    }
+    return "Playing · " + std::to_string(volume_) + "%";
 }
 
 EntityStateUpdate SpeakerApp::stateUpdate()
@@ -169,7 +243,9 @@ void SpeakerApp::updateStateFromHASS(MQTTStateUpdate mqtt_state_update)
     }
     if (cJSON_IsString(track))
     {
-        lv_label_set_text(track_label_, track->valuestring);
+        // Nothing playing shows the speaker's name instead.
+        has_track_ = strlen(track->valuestring) > 0;
+        lv_label_set_text(track_label_, has_track_ ? track->valuestring : friendly_name);
     }
     if (cJSON_IsString(artist))
     {
@@ -186,5 +262,9 @@ int8_t SpeakerApp::navigationNext()
 {
     playing_ = !playing_;
     playing_toggled_ = true;
+    {
+        SemaphoreGuard lock(mutex_);
+        render();
+    }
     return DONT_NAVIGATE_UPDATE_MOTOR_CONFIG;
 }
