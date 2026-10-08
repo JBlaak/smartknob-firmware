@@ -121,6 +121,14 @@ void MqttTask::run()
                     continue;
                 }
                 has_been_connected = true;
+
+                // A new connection starts without subscriptions, and the broker
+                // may have restarted and forgotten us. Announce ourselves again:
+                // init() re-subscribes to from_hass and the controller re-syncs.
+                hass_init_acknowledged = false;
+                init();
+                mqtt_init_interval = millis();
+
                 if (retry_count > 0)
                 {
                     WiFiEvent reset_error;
