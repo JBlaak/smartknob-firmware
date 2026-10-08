@@ -77,6 +77,8 @@ To get started with working on the firmware for Seedlabs' SmartKnob, and to flas
 
 5. **Monitor Output:** You can monitor the flashing process in the terminal or output window of VSCode. Once the process is complete, you should see a success message indicating that the firmware has been successfully flashed to the SmartKnob.
 
+Prefer the command line, or want to keep your calibration when flashing a new filesystem? See [docs/flashing.md](docs/flashing.md).
+
 
 
 ### Build vs Buy <a name="build-vs-buy"></a>
