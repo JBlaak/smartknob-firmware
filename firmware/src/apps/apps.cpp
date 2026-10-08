@@ -113,6 +113,12 @@ App *Apps::loadApp(uint8_t position, std::string app_slug, char *app_id, char *f
         add(position, app);
         return app;
     }
+    else if (app_slug.compare(APP_SLUG_SPEAKER) == 0)
+    {
+        SpeakerApp *app = new SpeakerApp(screen_mutex_, app_id, friendly_name, entity_id);
+        add(position, app);
+        return app;
+    }
     else if (app_slug.compare(APP_SLUG_STOPWATCH) == 0)
     {
         StopwatchApp *app = new StopwatchApp(screen_mutex_, entity_id);
